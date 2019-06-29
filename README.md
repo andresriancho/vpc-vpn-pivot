@@ -22,7 +22,7 @@ The `vpc-vpn-pivot` tool uses Python3. The full installation steps are:
 git clone https://github.com/andresriancho/vpc-vpn-pivot.git
 cd vpc-vpn-pivot
 pip3 install requirements.txt
-apt-get install openvpn easy-rsa
+sudo apt-get install openvpn easy-rsa
 ```
 
 ## Usage
@@ -41,9 +41,11 @@ be stored in `~/.aws/credentials/`, the VPC ID can be obtained using `aws ec2 de
 Everything is ready! Just connect your workstation to the VPC using `openvpn`:
 
 ```
-./vpc-vpn-pivot connect
+sudo ./vpc-vpn-pivot connect
 ```
 
+The script needs to be run using `sudo` because `openvpn` requires root privileges
+to create the `tun` interface.
 
 Once connected to the VPC you should be able to inspect the IP address range with
 `ifconfig` and run any tool, such as `nmap` to find open services on the VPC.
