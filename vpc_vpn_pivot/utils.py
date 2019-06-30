@@ -7,7 +7,7 @@ def run_cmd(cmd, cwd='.', env=None):
 
     :param cmd: The command to run
     :param cwd: Path where the command should be run
-    :para env: The environment variables to use
+    :param env: The environment variables to use
     :return: A tuple containing:
                 * return code
                 * stdout
@@ -17,7 +17,8 @@ def run_cmd(cmd, cwd='.', env=None):
                                        shell=True,
                                        cwd=cwd,
                                        check=False,
-                                       capture_output=True,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
                                        env=env)
 
     return (completed_process.returncode,

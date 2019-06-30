@@ -16,7 +16,7 @@ and connecting to it using the `openvpn` client.
 
 ## Installation
 
-The `vpc-vpn-pivot` tool uses Python3. The full installation steps are:
+The `vpc-vpn-pivot` tool uses Python 3.6. The full installation steps are:
 
 ```
 git clone https://github.com/andresriancho/vpc-vpn-pivot.git

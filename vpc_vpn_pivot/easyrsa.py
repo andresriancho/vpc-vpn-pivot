@@ -38,7 +38,7 @@ def install_easyrsa():
         f.write(r.content)
 
     tf = tarfile.open(EASYRSA_COMPRESSED)
-    tf.extractall()
+    tf.extractall(path='/tmp/')
 
     return True
 
@@ -72,10 +72,10 @@ def create_vpn_certs():
     env['EASYRSA_BATCH'] = '1'
 
     for cmd in create_certs_commands:
-        return_code, stdout, stderr = run_cmd(cmd, cwd=CA_PATH, env=env)
+        return_code, stdout, stderr = run_cmd(cmd, cwd=EASYRSA_PATH, env=env)
 
         if return_code != 0:
-            print('The "%s" command failed!')
+            print('The "%s" command failed!' % cmd)
             print('')
             print(stdout)
             print(stderr)

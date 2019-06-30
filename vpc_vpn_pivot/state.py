@@ -23,7 +23,7 @@ class State(object):
 
     def dump(self):
         try:
-            json.loads(open(STATE_FILE).read())
+            return json.loads(open(STATE_FILE).read())
         except FileNotFoundError:
             return {}
 

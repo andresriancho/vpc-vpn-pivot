@@ -1,6 +1,7 @@
 import re
 import boto3
 
+from botocore.exceptions import ClientError
 
 from vpc_vpn_pivot.state import State
 from vpc_vpn_pivot.constants import STATE_FILE
@@ -116,15 +117,31 @@ def perform_initial_checks(options):
     ec2_client = session.client('ec2')
 
     try:
-        response = ec2_client.describe_vpcs(Filters=[{'VpcIds': [options.profile]}])
-    except Exception as e:
-        print('Failed to call ec2.describe_vpcs: %s' % e)
-        return False
+        ec2_client.describe_vpcs(VpcIds=[options.vpc_id])
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'InvalidVpcID.NotFound':
+            #
+            # Show the error
+            #
+            msg = 'The specified VPC ID (%s) does not exist in AWS account %s'
+            args = (options.vpc_id, account_id)
+            print(msg % args)
 
-    if not response['Vpcs']:
-        msg = 'The specified VPC ID (%s) does not exist in AWS account %s'
-        args = (options.vpc_id, account_id)
-        print(msg % args)
+            #
+            # Get the user a list of all the VPC IDs
+            #
+            print('')
+            print('The following is a list of existing VPCs:')
+            print('')
+            response = ec2_client.describe_vpcs()
+
+            for vpc_data in response['Vpcs']:
+                args = (vpc_data['VpcId'], vpc_data['CidrBlock'])
+                msg = ' * %s - %s'
+                print(msg % args)
+        else:
+            print('Failed to call ec2.describe_vpcs: %s' % e)
+
         return False
 
     #
