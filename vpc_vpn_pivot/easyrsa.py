@@ -81,8 +81,15 @@ def create_vpn_certs():
             print(stderr)
             return False
 
-    return (cert_path('ca.crt'),
-            cert_path('issued/server.crt'),
-            cert_path('private/server.key'),
-            cert_path('issued/client.domain.tld.crt'),
-            cert_path('private/client.domain.tld.key'))
+    certs = (cert_path('ca.crt'),
+             cert_path('issued/server.crt'),
+             cert_path('private/server.key'),
+             cert_path('issued/client.domain.tld.crt'),
+             cert_path('private/client.domain.tld.key'))
+
+    for cert in certs:
+        if not os.path.exists(cert):
+            print('Failed to generate %s' % cert)
+            return False
+
+    return certs
