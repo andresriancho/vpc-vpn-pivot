@@ -10,7 +10,7 @@ def disconnect(options):
     """
     state = State()
 
-    if not state.get():
+    if not state.dump():
         print('The state file is empty. Call `create` first.')
         return 1
 

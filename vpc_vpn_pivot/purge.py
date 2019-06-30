@@ -10,8 +10,14 @@ def purge(options):
     """
     state = State()
 
-    if not state.get():
+    if not state.dump():
         print('The state file is empty. Call `create` first.')
         return 1
 
     raise NotImplementedError
+
+    #
+    # The last step is to clear the state
+    #
+    state.force({})
+    return 0
