@@ -22,7 +22,7 @@ The `vpc-vpn-pivot` tool uses Python3. The full installation steps are:
 git clone https://github.com/andresriancho/vpc-vpn-pivot.git
 cd vpc-vpn-pivot
 pip3 install requirements.txt
-sudo apt-get install openvpn easy-rsa
+sudo apt-get install openvpn
 ```
 
 ## Usage
