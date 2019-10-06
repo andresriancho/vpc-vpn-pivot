@@ -61,7 +61,7 @@ This command will setup the SSL certificates, routes and other resources
 required for the client VPN to work:
 
 ```
-./vpc-vpn-pivot create --profile={profile-name} --vpc-id={vpc-id}
+./vpc-vpn-pivot create --profile={profile-name} --subnet-id={subnet-id}
 ```
 
 The `profile` needs to contain compromised credentials for the target AWS account and

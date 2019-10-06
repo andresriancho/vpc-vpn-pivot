@@ -33,8 +33,8 @@ def parse_args():
                                 help='AWS profile name (as stored in ~/.aws/credentials)',
                                 required=True)
 
-    parser_connect.add_argument('--vpc-id',
-                                help='VPC ID of the target network to start a connection with',
+    parser_connect.add_argument('--subnet-id',
+                                help='Subnet ID of the target network to start a connection with',
                                 required=True)
 
     parser_connect.add_argument('--force',
@@ -79,7 +79,7 @@ def main():
     }
 
     if options.subcommand not in all_commands:
-        print('Unknown subcommand: %s' % options.subcommand)
+        print('Unknown sub-command: %s' % options.subcommand)
         return 1
 
     return all_commands[options.subcommand](options)

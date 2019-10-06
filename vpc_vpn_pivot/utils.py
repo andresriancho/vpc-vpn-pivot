@@ -1,3 +1,4 @@
+import re
 import subprocess
 
 
@@ -24,3 +25,35 @@ def run_cmd(cmd, cwd='.', env=None):
     return (completed_process.returncode,
             completed_process.stdout,
             completed_process.stderr)
+
+
+def is_valid_vpc_id(vpc_id):
+    """
+    Validate VPC identifiers
+
+    Example valid IDs:
+        - vpc-7128c20c
+        - vpc-079cac0a61aaac7a7
+
+    :param vpc_id: The VPC ID to validate
+    :return: True if the VPC ID is valid
+    """
+    return bool(re.match('^vpc-([a-f0-9]{8}|[a-f0-9]{17})$', vpc_id))
+
+
+def is_valid_subnet_id(vpc_id):
+    """
+    Validate subnet identifiers
+
+    Example valid IDs:
+        - subnet-0d326f29e157a5b79
+        - subnet-27f3c340
+
+    :param vpc_id: The VPC ID to validate
+    :return: True if the VPC ID is valid
+    """
+    return bool(re.match('^subnet-([a-f0-9]{8}|[a-f0-9]{17})$', vpc_id))
+
+
+def read_file(filename):
+    return open(filename, "rb").read()
