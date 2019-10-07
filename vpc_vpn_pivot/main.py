@@ -5,6 +5,7 @@ from vpc_vpn_pivot.create import create
 from vpc_vpn_pivot.connect import connect
 from vpc_vpn_pivot.disconnect import disconnect
 from vpc_vpn_pivot.purge import purge
+from vpc_vpn_pivot.status import status
 
 
 DESCRIPTION = '''\
@@ -59,6 +60,12 @@ def parse_args():
                                               help='Disconnect from the VPC')
 
     #
+    # Create the parser for the "status" command
+    #
+    parser_status = subparsers.add_parser('status',
+                                          help='Check the VPC status')
+
+    #
     # Create the parser for the "purge" command
     #
     parser_purge = subparsers.add_parser('purge',
@@ -78,6 +85,7 @@ def main():
     all_commands = {
         'create': create,
         'connect': connect,
+        'status': status,
         'disconnect': disconnect,
         'purge': purge,
     }
