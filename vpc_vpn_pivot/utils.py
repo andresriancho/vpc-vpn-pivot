@@ -1,4 +1,5 @@
 import re
+import os
 import subprocess
 
 
@@ -56,4 +57,14 @@ def is_valid_subnet_id(vpc_id):
 
 
 def read_file(filename):
-    return open(filename, "rb").read()
+    return open(filename, 'rb').read()
+
+
+def is_root():
+    """
+    :return: True when the user running the command is root
+    """
+    if os.geteuid() == 0:
+        return True
+
+    return False

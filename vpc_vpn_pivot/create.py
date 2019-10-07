@@ -1,3 +1,4 @@
+import time
 import boto3
 
 from botocore.exceptions import ClientError
@@ -51,6 +52,21 @@ def create(options):
 
     if not success:
         return 1
+
+    success = wait_for_vpn_creation(options)
+
+    if not success:
+        return 1
+
+    success = download_openvpn_config(options)
+
+    if not success:
+        return 1
+
+    print('AWS Client VPN created! Connect using:')
+    print('')
+    print('    ./vpc-vpn-pivot connect')
+    print('')
 
     return 0
 
@@ -236,7 +252,7 @@ def create_acm_certs(options):
         response = acm_client.import_certificate(
             Certificate=read_file(state.get('server_crt')),
             PrivateKey=read_file(state.get('server_key')),
-            CertificateChain=read_file(state.get('ca_crt'))
+            CertificateChain=read_file(state.get('ca_crt')),
         )
     except Exception as e:
         print('Failed to import server certificate: %s' % e)
@@ -248,7 +264,7 @@ def create_acm_certs(options):
         response = acm_client.import_certificate(
             Certificate=read_file(state.get('client_crt')),
             PrivateKey=read_file(state.get('client_key')),
-            CertificateChain=read_file(state.get('ca_crt'))
+            CertificateChain=read_file(state.get('ca_crt')),
         )
     except Exception as e:
         print('Failed to import client certificate: %s' % e)
@@ -354,6 +370,10 @@ def create_client_vpn_endpoint(options):
             DnsServers=state.get('dns_server_list'),
 
             TransportProtocol='udp',
+
+            # Only route some traffic to the VPN, internet traffic will
+            # still go out using the workstation regular default route
+            SplitTunnel=True
         )
     except Exception as e:
         print('Failed to create client VPN endpoint: %s' % e)
@@ -417,7 +437,7 @@ def create_client_vpn_endpoint(options):
     try:
         response = ec2_client.create_security_group(
             Description='Security group for client VPN',
-            GroupName='client_vpn',
+            GroupName='client_vpn_%s' % int(time.time()),
             VpcId=state.get('vpc_id'),
         )
 
@@ -439,9 +459,6 @@ def create_client_vpn_endpoint(options):
     except Exception as e:
         print('Failed to create security group for client vpn network: %s' % e)
         return False
-    else:
-        # TODO: How do I get the authorization ID to remove it later?
-        pass
 
     #
     #   aws ec2 apply-security-groups-to-client-vpn-target-network
@@ -462,3 +479,88 @@ def create_client_vpn_endpoint(options):
         pass
 
     return True
+
+
+def download_openvpn_config(options):
+    """
+    Downloads the OpenVPN config file from the Client VPN service
+    and saves it to the state file.
+
+    :param options: Options passed as command line arguments by the user
+    :return: True if the config was saved to the state
+    """
+    state = State()
+
+    session = boto3.Session(profile_name=state.get('profile'),
+                            region_name='us-east-1')
+    ec2_client = session.client('ec2')
+
+    try:
+        response = ec2_client.export_client_vpn_client_configuration(
+            ClientVpnEndpointId=state.get('vpn_endpoint_id')
+        )
+    except Exception as e:
+        print('Failed to download the client VPN configuration: %s' % e)
+        return False
+
+    openvpn_config_file = response['ClientConfiguration']
+    state.append('openvpn_config_file', openvpn_config_file)
+
+    return True
+
+
+def wait_for_vpn_creation(options):
+    """
+    The client VPN creation might take a few minutes to be created, this
+    method will wait until all resources are ready.
+
+    :param options: Options passed as command line arguments by the user
+    :return: True if the VPN was successfully created and all resources
+             are ready to be used.
+    """
+    state = State()
+    association_id = state.get('association_id')
+
+    for _ in range(120):
+        if association_is_ready(association_id):
+            return True
+
+        print('Waiting for association...')
+        time.sleep(2)
+
+    print('Timeout waiting for association to be ready. The VPN might still'
+          ' be usable, wait a few minutes and try to connect to it using the'
+          ' `connect` sub-command.')
+    return False
+
+
+def association_is_ready(association_id):
+    """
+    Use the AWS API to check if the association_id is ready to be used
+
+    :param association_id: The newly created association_id
+    :return: True if the association_id is ready
+    """
+    state = State()
+    vpn_endpoint_id = state.get('vpn_endpoint_id')
+
+    session = boto3.Session(profile_name=state.get('profile'),
+                            region_name='us-east-1')
+    ec2_client = session.client('ec2')
+
+    try:
+        response = ec2_client.describe_client_vpn_endpoints(
+            ClientVpnEndpointId=vpn_endpoint_id
+        )
+    except Exception as e:
+        print('Failed to describe the client VPN state: %s' % e)
+        return False
+
+    status = response['ClientVpnEndpoints']['Status']
+    if status == 'available':
+        print('AWS Client VPN %s is ready to use!' % vpn_endpoint_id)
+        return True
+
+    args = (vpn_endpoint_id, status)
+    print('AWS Client VPN %s has status %s' % args)
+    raise False

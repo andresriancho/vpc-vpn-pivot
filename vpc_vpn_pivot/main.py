@@ -46,7 +46,11 @@ def parse_args():
     # Create the parser for the "connect" command
     #
     parser_connect = subparsers.add_parser('connect',
-                                           help='Connect to the remote VPC')
+                                           help='Connect to the remote VPC.\n'
+                                                '\n'
+                                                'This command requires root privileges on'
+                                                ' your workstation in order to start the'
+                                                ' OpenVPN client.')
 
     #
     # Create the parser for the "disconnect" command
