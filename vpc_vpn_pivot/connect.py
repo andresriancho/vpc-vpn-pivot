@@ -4,7 +4,7 @@ import tempfile
 import subprocess
 
 from vpc_vpn_pivot.state import State
-from vpc_vpn_pivot.utils import is_root
+from vpc_vpn_pivot.utils import is_root, read_file
 
 
 OPENVPN_CMD = ['openvpn', '--auth-nocache', '--config']
@@ -106,7 +106,9 @@ def write_config_file(openvpn_config_file):
                                        prefix='vpc-vpn-pivot-',
                                        delete=False)
 
-    temp.write(openvpn_config_file)
+    temp.write(openvpn_config_file.encode('utf-8'))
+    temp.flush()
+    
     return temp.name
 
 
@@ -117,13 +119,37 @@ def customize_openvpn_config(openvpn_config_file):
     :param openvpn_config_file: The OpenVPN config provided by AWS
     :return: The updated config file contents
     """
+    openvpn_config_file = add_script_security(openvpn_config_file)
+    openvpn_config_file = add_update_resolv(openvpn_config_file)
+    openvpn_config_file = add_certs(openvpn_config_file)
+    return openvpn_config_file
+
+
+def add_script_security(openvpn_config_file):
     openvpn_config_file += '\n\n'
     openvpn_config_file += 'script-security 2\n'
+    return openvpn_config_file
+
+
+def add_update_resolv(openvpn_config_file):
+    openvpn_config_file += '\n\n'
 
     # TODO: This might only work on Ubuntu, do we need to implement it for
     #       other distributions?
     if os.path.exists('/etc/openvpn/update-resolv-conf'):
         openvpn_config_file += 'up /etc/openvpn/update-resolv-conf\n'
         openvpn_config_file += 'down /etc/openvpn/update-resolv-conf\n'
+
+    return openvpn_config_file
+
+
+def add_certs(openvpn_config_file):
+    cert_fmt = '\n\n<cert>\n%s\n</cert>\n'
+    key_fmt = '\n\n<key>\n%s\n</key>\n'
+
+    state = State()
+
+    openvpn_config_file += cert_fmt % read_file(state.get('client_crt').encode('utf-8'))
+    openvpn_config_file += key_fmt % read_file(state.get('client_key').encode('utf-8'))
 
     return openvpn_config_file

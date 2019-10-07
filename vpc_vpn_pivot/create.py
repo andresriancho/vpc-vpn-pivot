@@ -8,7 +8,7 @@ from vpc_vpn_pivot.constants import STATE_FILE, DEFAULT_DNS_SERVERS
 from vpc_vpn_pivot.ssl.certs import create_ssl_certs
 from vpc_vpn_pivot.utils import (is_valid_vpc_id,
                                  is_valid_subnet_id,
-                                 read_file)
+                                 read_file_b)
 
 
 def create(options):
@@ -250,9 +250,9 @@ def create_acm_certs(options):
 
     try:
         response = acm_client.import_certificate(
-            Certificate=read_file(state.get('server_crt')),
-            PrivateKey=read_file(state.get('server_key')),
-            CertificateChain=read_file(state.get('ca_crt')),
+            Certificate=read_file_b(state.get('server_crt')),
+            PrivateKey=read_file_b(state.get('server_key')),
+            CertificateChain=read_file_b(state.get('ca_crt')),
         )
     except Exception as e:
         print('Failed to import server certificate: %s' % e)
@@ -262,9 +262,9 @@ def create_acm_certs(options):
 
     try:
         response = acm_client.import_certificate(
-            Certificate=read_file(state.get('client_crt')),
-            PrivateKey=read_file(state.get('client_key')),
-            CertificateChain=read_file(state.get('ca_crt')),
+            Certificate=read_file_b(state.get('client_crt')),
+            PrivateKey=read_file_b(state.get('client_key')),
+            CertificateChain=read_file_b(state.get('ca_crt')),
         )
     except Exception as e:
         print('Failed to import client certificate: %s' % e)
@@ -398,23 +398,6 @@ def create_client_vpn_endpoint(options):
         state.append('association_id', association_id)
 
     #
-    #   aws ec2 create-client-vpn-route
-    #
-    try:
-        response = ec2_client.create_client_vpn_route(
-            ClientVpnEndpointId=vpn_endpoint_id,
-            DestinationCidrBlock='0.0.0.0/0',
-            TargetVpcSubnetId=state.get('subnet_id'),
-            Description='Client VPN route #1',
-        )
-    except Exception as e:
-        print('Failed to create client vpn route: %s' % e)
-        return False
-    else:
-        # TODO: How do I get the route ID to remove it later?
-        pass
-
-    #
     #   aws ec2 authorize-client-vpn-ingress
     #
     try:
@@ -506,6 +489,8 @@ def download_openvpn_config(options):
     openvpn_config_file = response['ClientConfiguration']
     state.append('openvpn_config_file', openvpn_config_file)
 
+    print('Saved OpenVPN configuration to state')
+
     return True
 
 
@@ -521,12 +506,13 @@ def wait_for_vpn_creation(options):
     state = State()
     association_id = state.get('association_id')
 
+    print('Waiting for association...')
+
     for _ in range(120):
         if association_is_ready(association_id):
             return True
 
-        print('Waiting for association...')
-        time.sleep(2)
+        time.sleep(5)
 
     print('Timeout waiting for association to be ready. The VPN might still'
           ' be usable, wait a few minutes and try to connect to it using the'
@@ -550,17 +536,18 @@ def association_is_ready(association_id):
 
     try:
         response = ec2_client.describe_client_vpn_endpoints(
-            ClientVpnEndpointId=vpn_endpoint_id
+            ClientVpnEndpointIds=[vpn_endpoint_id],
         )
     except Exception as e:
         print('Failed to describe the client VPN state: %s' % e)
         return False
 
-    status = response['ClientVpnEndpoints']['Status']
+    status = response['ClientVpnEndpoints'][0]['Status']['Code']
+
     if status == 'available':
         print('AWS Client VPN %s is ready to use!' % vpn_endpoint_id)
         return True
 
     args = (vpn_endpoint_id, status)
     print('AWS Client VPN %s has status %s' % args)
-    raise False
+    return False

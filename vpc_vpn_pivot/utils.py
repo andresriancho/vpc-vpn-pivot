@@ -56,8 +56,12 @@ def is_valid_subnet_id(vpc_id):
     return bool(re.match('^subnet-([a-f0-9]{8}|[a-f0-9]{17})$', vpc_id))
 
 
-def read_file(filename):
+def read_file_b(filename):
     return open(filename, 'rb').read()
+
+
+def read_file(filename):
+    return open(filename, 'r').read()
 
 
 def is_root():
