@@ -21,6 +21,11 @@ class State(object):
         state[key] = value
         self.force(state)
 
+    def remove(self, key):
+        state = self.dump()
+        state.pop(key)
+        self.force(state)
+
     def dump(self):
         try:
             return json.loads(open(STATE_FILE).read())
