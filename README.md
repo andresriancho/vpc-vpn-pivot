@@ -1,14 +1,17 @@
 ## Pivoting into VPC networks
 
-This tool automates the creation of a VPN between the attacker's workstation and an AWS resource
-in the target VPC with the objective of connecting to other AWS services, such as EC2 instances,
-which are not accessible from the Internet. 
+This tool automates the creation of a VPN between the attacker's workstation and an
+AWS resource in the target VPC with the objective of connecting to other AWS services,
+such as EC2 instances, which are not accessible from the Internet.
+
+![vpn-vpc-pivot-demo](https://user-images.githubusercontent.com/865200/66357402-0fe21200-e945-11e9-8191-0baf02dba573.gif)
 
 ## Use case
 
 You are performing a cloud penetration test and gained access to a set of 
 AWS credentials. The target infrastructure uses VPCs and most of the interesting
-services are private (can only be accessed by other hosts connected to the same VPC).
+services are private (can only be accessed by other hosts connected to the same VPC
+or subnet).
 
 This tool completely automates the process of creating a VPN between your workstation
 and the target VPC so you can connect to those private services.
