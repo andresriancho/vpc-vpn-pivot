@@ -1,13 +1,20 @@
 import os
 import time
+import shlex
 import tempfile
 import subprocess
 
 from vpc_vpn_pivot.state import State
-from vpc_vpn_pivot.utils import is_root, read_file
+from vpc_vpn_pivot.utils.misc import is_root, read_file
+from vpc_vpn_pivot.utils.which import which
+from vpc_vpn_pivot.utils.tail import tail
 
+OPENVPN_LOG_FILE = 'openvpn.log'
 
-OPENVPN_CMD = ['openvpn', '--auth-nocache', '--config']
+OPENVPN_PARAMS = [
+    '--auth-nocache',
+    '--log %s' % OPENVPN_LOG_FILE,
+]
 
 
 def connect(options):
@@ -34,7 +41,7 @@ def connect(options):
         os.remove(openvpn_filename)
         return 1
     else:
-        os.remove(openvpn_config_file)
+        os.remove(openvpn_filename)
 
     return 0
 
@@ -47,6 +54,12 @@ def validate(options):
     if not is_root():
         print('This command requires root privileges on your system in order'
               ' to run the OpenVPN client in the background.')
+        return False
+
+    openvpn_executables = which('openvpn')
+    if not openvpn_executables:
+        print('This command requires `openvpn` to be installed in your'
+              ' system.')
         return False
 
     state = State()
@@ -68,30 +81,33 @@ def validate(options):
 
 
 def connect_to_vpn_server(openvpn_filename):
-    cmd = OPENVPN_CMD[:]
-    cmd.append(openvpn_filename)
+    state = State()
 
-    # TODO: Save the stdout and stderr from this command to a log file for
-    #       easier debugging?
-    process = subprocess.Popen(cmd)
+    params = OPENVPN_PARAMS[:]
+    params.append('--config %s' % openvpn_filename)
 
-    try:
-        while True:
-            time.sleep(60)
-    except KeyboardInterrupt:
-        print('Closing OpenVPN connection...')
-        # Termination with Ctrl+C
-        try:
-            # TODO: Is there a better signal to send to OpenVPN
-            #       in order for it to cleanly finish?
-            process.kill()
-        except:
-            pass
+    openvpn_executable = which('openvpn')[0]
 
-        while process.poll() != 0:
-            time.sleep(1)
+    cmd = [openvpn_executable]
+    cmd.extend(params)
+    cmd = shlex.split(' '.join(cmd))
 
-        print('OpenVPN connection closed')
+    process = subprocess.Popen(cmd,
+                               close_fds=True)
+
+    print('OpenVPN client started in process %s' % process.pid)
+    print('VPN connection log is at %s' % OPENVPN_LOG_FILE)
+
+    state.append('openvpn_pid', process.pid)
+
+    time.sleep(5)
+
+    print('\nLast five lines from connection log:')
+    log_lines = tail(open(OPENVPN_LOG_FILE), 5)
+    log_lines = '    '.join(log_lines)
+    print(log_lines)
+
+    return True
 
 
 def write_config_file(openvpn_config_file):
@@ -108,7 +124,7 @@ def write_config_file(openvpn_config_file):
 
     temp.write(openvpn_config_file.encode('utf-8'))
     temp.flush()
-    
+
     return temp.name
 
 
