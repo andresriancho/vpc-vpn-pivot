@@ -32,5 +32,5 @@ def disconnect(options):
     print('Ctrl+C sent to the OpenVPN client process')
 
     state.remove('openvpn_pid')
-    
+
     return 0

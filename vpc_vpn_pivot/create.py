@@ -62,9 +62,9 @@ def create(options):
     if not success:
         return 1
 
-    print('AWS Client VPN created! Connect using:')
+    print('\nAWS Client VPN created! Connect using:')
     print('')
-    print('    ./vpc-vpn-pivot connect')
+    print('    sudo ./vpc-vpn-pivot connect')
     print('')
 
     return 0
@@ -505,7 +505,7 @@ def wait_for_vpn_creation(options):
     state = State()
     association_id = state.get('association_id')
 
-    print('Waiting for association...')
+    print('Waiting for association... (this might take a while)')
 
     for _ in range(120):
         if association_is_ready(association_id):

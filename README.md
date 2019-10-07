@@ -72,6 +72,10 @@ Everything is ready! Just connect your workstation to the VPC using `openvpn`:
 
 ```
 sudo ./vpc-vpn-pivot connect
+
+./vpc-vpn-pivot status
+route -n
+nmap -sS ...
 ```
 
 The script needs to be run using `sudo` because `openvpn` requires root privileges

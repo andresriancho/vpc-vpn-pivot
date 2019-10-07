@@ -22,10 +22,6 @@ def purge(options):
     delete_client_vpn_endpoint()
     delete_acm_certs()
 
-    #
-    # The last step is to clear the state
-    #
-    state.force({})
     return 0
 
 
@@ -52,6 +48,7 @@ def delete_acm_certs():
             print('Failed to remove ACM server certificate with ARN %s: %s' % args)
         else:
             print('Removed ACM server certificate with ARN %s' % server_arn)
+            state.remove('server_cert_acm_arn')
 
     if client_arn is not None:
         try:
@@ -61,6 +58,7 @@ def delete_acm_certs():
             print('Failed to remove ACM client certificate with ARN %s: %s' % args)
         else:
             print('Removed ACM client certificate with ARN %s' % server_arn)
+            state.remove('client_cert_acm_arn')
 
     return True
 
@@ -80,21 +78,7 @@ def delete_client_vpn_endpoint():
     security_group_id = state.get('security_group_id')
     vpn_endpoint_id = state.get('vpn_endpoint_id')
     subnet_cidr_block = state.get('subnet_cidr_block')
-    subnet_id = state.get('subnet_id')
     association_id = state.get('association_id')
-
-    if security_group_id is None:
-        print('There is no security group to remove')
-    else:
-        try:
-            ec2_client.delete_security_group(
-                GroupId=security_group_id
-            )
-        except Exception as e:
-            args = (security_group_id, e)
-            print('Failed to delete resource with ARN %s: %s' % args)
-        else:
-            print('Successfully removed resource with ARN %s' % security_group_id)
 
     if vpn_endpoint_id is None or subnet_cidr_block is None:
         print('There is no VPN ingress to revoke')
@@ -110,20 +94,6 @@ def delete_client_vpn_endpoint():
         else:
             print('Successfully removed client VPN ingress')
 
-    if subnet_id is None or vpn_endpoint_id is None:
-        print('There is no VPN route to delete')
-    else:
-        try:
-            ec2_client.delete_client_vpn_route(
-                ClientVpnEndpointId=vpn_endpoint_id,
-                TargetVpcSubnetId=subnet_id,
-                DestinationCidrBlock='0.0.0.0/0',
-            )
-        except Exception as e:
-            print('Failed to delete client VPN route: %s' % e)
-        else:
-            print('Successfully removed client VPN route')
-
     if association_id is None:
         print('There is no VPN association ID to delete')
     else:
@@ -137,6 +107,7 @@ def delete_client_vpn_endpoint():
             print('Failed to delete client VPN association with ID %s: %s' % args)
         else:
             print('Successfully removed client VPN association with ID %s' % association_id)
+            state.remove('association_id')
 
     if vpn_endpoint_id is None:
         print('There is no client VPN endpoint to delete')
@@ -148,3 +119,18 @@ def delete_client_vpn_endpoint():
             print('Failed to delete client VPN endpoint with ID %s: %s' % args)
         else:
             print('Successfully removed client VPN endpoint with ID %s' % vpn_endpoint_id)
+            state.remove('vpn_endpoint_id')
+
+    if security_group_id is None:
+        print('There is no security group to remove')
+    else:
+        try:
+            ec2_client.delete_security_group(
+                GroupId=security_group_id
+            )
+        except Exception as e:
+            args = (security_group_id, e)
+            print('Failed to delete resource with ARN %s: %s' % args)
+        else:
+            print('Successfully removed resource with ARN %s' % security_group_id)
+            state.remove('security_group_id')
