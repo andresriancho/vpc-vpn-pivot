@@ -6,9 +6,8 @@ from botocore.exceptions import ClientError
 from vpc_vpn_pivot.state import State
 from vpc_vpn_pivot.constants import STATE_FILE, DEFAULT_DNS_SERVERS
 from vpc_vpn_pivot.ssl.certs import create_ssl_certs
-from vpc_vpn_pivot.utils import (is_valid_vpc_id,
-                                 is_valid_subnet_id,
-                                 read_file_b)
+from vpc_vpn_pivot.utils.misc import (is_valid_subnet_id,
+                                      read_file_b)
 
 
 def create(options):

@@ -3,7 +3,7 @@ import shutil
 import tarfile
 import requests
 
-from vpc_vpn_pivot.utils import run_cmd
+from vpc_vpn_pivot.utils.misc import run_cmd
 from vpc_vpn_pivot.constants import CA_PATH
 
 EASYRSA_RELEASE = 'https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.6/EasyRSA-unix-v3.0.6.tgz'
