@@ -1,6 +1,8 @@
 import boto3
+import shutil
 
 from vpc_vpn_pivot.state import State
+from vpc_vpn_pivot.easyrsa import EASYRSA_PATH
 
 
 def purge(options):
@@ -19,10 +21,28 @@ def purge(options):
     #
     # The opposite of create_aws_resources()
     #
-    delete_client_vpn_endpoint()
-    delete_acm_certs()
+    overall_success = True
+    purge_steps = [
+        delete_client_vpn_endpoint,
+        delete_acm_certs,
+        delete_easy_rsa_install,
+    ]
+
+    for purge_step in purge_steps:
+        success = purge_step()
+
+        if not success:
+            overall_success = False
+
+    if overall_success:
+        state.force({})
 
     return 0
+
+
+def delete_easy_rsa_install():
+    shutil.rmtree(EASYRSA_PATH, ignore_errors=True)
+    return True
 
 
 def delete_acm_certs():
@@ -40,12 +60,16 @@ def delete_acm_certs():
     server_arn = state.get('server_cert_acm_arn')
     client_arn = state.get('client_cert_acm_arn')
 
+    server_arn_success = True
+    client_arn_success = True
+
     if server_arn is not None:
         try:
             acm_client.delete_certificate(CertificateArn=server_arn)
         except Exception as e:
             args = (server_arn, e)
             print('Failed to remove ACM server certificate with ARN %s: %s' % args)
+            server_arn_success = False
         else:
             print('Removed ACM server certificate with ARN %s' % server_arn)
             state.remove('server_cert_acm_arn')
@@ -56,11 +80,12 @@ def delete_acm_certs():
         except Exception as e:
             args = (server_arn, e)
             print('Failed to remove ACM client certificate with ARN %s: %s' % args)
+            client_arn_success = False
         else:
             print('Removed ACM client certificate with ARN %s' % server_arn)
             state.remove('client_cert_acm_arn')
 
-    return True
+    return server_arn_success and client_arn_success
 
 
 def delete_client_vpn_endpoint():
@@ -80,6 +105,11 @@ def delete_client_vpn_endpoint():
     subnet_cidr_block = state.get('subnet_cidr_block')
     association_id = state.get('association_id')
 
+    security_group_success = True
+    client_vpn_endpoint_success = True
+    client_vpn_target_network_success = True
+    client_vpn_ingress_success = True
+
     if vpn_endpoint_id is None or subnet_cidr_block is None:
         print('There is no VPN ingress to revoke')
     else:
@@ -91,6 +121,7 @@ def delete_client_vpn_endpoint():
             )
         except Exception as e:
             print('Failed to delete client VPN ingress: %s' % e)
+            client_vpn_ingress_success = False
         else:
             print('Successfully removed client VPN ingress')
 
@@ -105,6 +136,7 @@ def delete_client_vpn_endpoint():
         except Exception as e:
             args = (association_id, e)
             print('Failed to delete client VPN association with ID %s: %s' % args)
+            client_vpn_target_network_success = False
         else:
             print('Successfully removed client VPN association with ID %s' % association_id)
             state.remove('association_id')
@@ -117,6 +149,7 @@ def delete_client_vpn_endpoint():
         except Exception as e:
             args = (vpn_endpoint_id, e)
             print('Failed to delete client VPN endpoint with ID %s: %s' % args)
+            client_vpn_endpoint_success = False
         else:
             print('Successfully removed client VPN endpoint with ID %s' % vpn_endpoint_id)
             state.remove('vpn_endpoint_id')
@@ -131,6 +164,12 @@ def delete_client_vpn_endpoint():
         except Exception as e:
             args = (security_group_id, e)
             print('Failed to delete resource with ARN %s: %s' % args)
+            security_group_success = False
         else:
             print('Successfully removed resource with ARN %s' % security_group_id)
             state.remove('security_group_id')
+
+    return (security_group_success and
+            client_vpn_endpoint_success and
+            client_vpn_target_network_success and
+            client_vpn_ingress_success)
